@@ -4,7 +4,7 @@ const path = require('path');
 
 // 检测运行环境
 const isDev = process.env.NODE_ENV !== 'production';
-const isVercel = process.env.VERCEL === '1';
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV === 'production';
 
 // 获取 Chrome 可执行文件路径
 async function getChromePath() {
@@ -130,37 +130,44 @@ module.exports = async (req, res) => {
     console.log(`运行环境: isDev=${isDev}, isVercel=${isVercel}`);
     
     // 浏览器启动配置
-    const launchOptions = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-web-security',
-        '--disable-features=TranslateUI',
-        '--window-size=1920,1080'
-      ]
-    };
-
-    // 根据环境设置 Chrome 路径
+    let launchOptions;
+    
     if (isVercel) {
       // Vercel 环境配置
       const chromium = require('@sparticuz/chromium');
-      launchOptions.executablePath = await chromium.executablePath();
-      launchOptions.args.push(...chromium.args);
-      console.log('使用 Vercel chromium');
+      
+      launchOptions = {
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      };
+      console.log('使用 Vercel @sparticuz/chromium');
     } else {
-      // 本地开发，使用系统 Chrome
+      // 本地开发环境
       const chromePath = await getChromePath();
-      launchOptions.executablePath = chromePath;
+      
+      launchOptions = {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-web-security',
+          '--disable-features=TranslateUI',
+          '--window-size=1920,1080'
+        ],
+        executablePath: chromePath
+      };
+      
       console.log(`使用本地 Chrome: ${chromePath}`);
       
       // 检查 Chrome 是否存在
@@ -175,7 +182,7 @@ module.exports = async (req, res) => {
     const page = await browser.newPage();
     
     // 设置用户代理 - 模拟真实浏览器
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
     
     // 设置设备尺寸
     await page.setViewport({
