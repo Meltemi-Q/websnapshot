@@ -2,17 +2,19 @@
     "name": "websnap",
     "version": "1.0.1",
     "engines": {
-      "node": "20"
+      "node": ">=18.0.0"
     },
     "scripts": {
       "start": "node server.js",
       "dev": "node server.js",
       "build": "echo 'No build step required'",
-      "test": "node test-screenshot.js"
+      "test": "node test-screenshot.js",
+      "test:vercel": "node vercel-test.js",
+      "postinstall": "echo 'Dependencies installed successfully'"
     },
     "dependencies": {
       "express": "^4.21.2",
-      "puppeteer-core": "^24.1.1",
-      "@sparticuz/chromium": "^132.0.0"
+      "puppeteer-core": "^23.10.4",
+      "@sparticuz/chromium": "^131.0.0"
     }
 }
