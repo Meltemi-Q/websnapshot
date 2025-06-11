@@ -371,11 +371,19 @@
                         })
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`截图生成失败: ${response.statusText}`);
-                    }
-                    
                     const result = await response.json();
+                    
+                    if (!response.ok || !result.success) {
+                        // 处理API错误响应
+                        let errorMessage = '截图生成失败';
+                        if (result.error) {
+                            errorMessage = result.error;
+                        }
+                        if (result.details) {
+                            errorMessage += ': ' + result.details;
+                        }
+                        throw new Error(errorMessage);
+                    }
                     
                     // 显示结果
                     loadingSection.style.display = 'none';

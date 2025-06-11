@@ -1,4 +1,6 @@
 const puppeteer = require('puppeteer-core');
+const fs = require('fs');
+const path = require('path');
 
 // 检测运行环境
 const isDev = process.env.NODE_ENV !== 'production';
@@ -16,13 +18,38 @@ async function getChromePath() {
   const os = require('os');
   const platform = os.platform();
   
+  const possiblePaths = [];
+  
   if (platform === 'win32') {
-    return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+    possiblePaths.push(
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      path.join(os.homedir(), 'AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'),
+      'C:\\Program Files\\Chromium\\Application\\chromium.exe',
+      'C:\\Program Files (x86)\\Chromium\\Application\\chromium.exe'
+    );
   } else if (platform === 'darwin') {
-    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    possiblePaths.push(
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium'
+    );
   } else {
-    return '/usr/bin/google-chrome';
+    possiblePaths.push(
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium'
+    );
   }
+  
+  // 查找第一个存在的路径
+  for (const chromePath of possiblePaths) {
+    if (fs.existsSync(chromePath)) {
+      return chromePath;
+    }
+  }
+  
+  // 如果都找不到，返回第一个默认路径
+  return possiblePaths[0];
 }
 
 // URL 格式化函数 - 支持不加 http 前缀
@@ -99,6 +126,9 @@ module.exports = async (req, res) => {
   let browser;
   
   try {
+    console.log(`开始处理截图请求: ${url}, 设备: ${device}, 质量: ${quality}`);
+    console.log(`运行环境: isDev=${isDev}, isVercel=${isVercel}`);
+    
     // 浏览器启动配置
     const launchOptions = {
       headless: true,
@@ -126,13 +156,21 @@ module.exports = async (req, res) => {
       const chromium = require('@sparticuz/chromium');
       launchOptions.executablePath = await chromium.executablePath();
       launchOptions.args.push(...chromium.args);
-    } else if (isDev) {
+      console.log('使用 Vercel chromium');
+    } else {
       // 本地开发，使用系统 Chrome
       const chromePath = await getChromePath();
       launchOptions.executablePath = chromePath;
+      console.log(`使用本地 Chrome: ${chromePath}`);
+      
+      // 检查 Chrome 是否存在
+      if (!fs.existsSync(chromePath)) {
+        throw new Error(`Chrome 可执行文件不存在: ${chromePath}`);
+      }
     }
     
     // 启动浏览器
+    console.log('正在启动浏览器...');
     browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
     
@@ -146,13 +184,18 @@ module.exports = async (req, res) => {
       deviceScaleFactor: 1
     });
     
-    // 拦截不必要的资源以提高性能
+    // 改进的资源拦截 - 只拦截明确不需要的资源
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
-      if (resourceType === 'stylesheet' || resourceType === 'font' || resourceType === 'image') {
-        req.continue();
-      } else if (resourceType === 'media') {
+      const url = req.url();
+      
+      // 拦截广告和跟踪脚本
+      if (url.includes('google-analytics') || 
+          url.includes('googletagmanager') || 
+          url.includes('facebook.com/tr') ||
+          url.includes('doubleclick.net') ||
+          resourceType === 'media') {
         req.abort();
       } else {
         req.continue();
@@ -160,6 +203,7 @@ module.exports = async (req, res) => {
     });
     
     // 导航到目标URL
+    console.log(`正在访问: ${url}`);
     await page.goto(url, {
       waitUntil: ['networkidle0', 'domcontentloaded'],
       timeout: 30000
@@ -221,6 +265,8 @@ module.exports = async (req, res) => {
       };
     });
     
+    console.log(`页面尺寸: ${dimensions.width}x${dimensions.height}`);
+    
     // 设置视口为实际页面大小
     await page.setViewport({
       width: deviceProfiles[device].width,
@@ -229,6 +275,7 @@ module.exports = async (req, res) => {
     });
     
     // 截取整个页面
+    console.log('正在生成截图...');
     const screenshot = await page.screenshot({
       type: 'jpeg',
       quality: qualitySettings[quality],
@@ -238,6 +285,8 @@ module.exports = async (req, res) => {
     // 将截图转换为Base64
     const base64Image = screenshot.toString('base64');
     const dataURI = `data:image/jpeg;base64,${base64Image}`;
+    
+    console.log(`截图生成成功，大小: ${Math.round(screenshot.length / 1024)}KB`);
     
     // 返回结果
     res.json({
@@ -254,14 +303,22 @@ module.exports = async (req, res) => {
     
   } catch (error) {
     console.error('截图生成错误:', error);
+    console.error('错误堆栈:', error.stack);
+    
     res.status(500).json({ 
       error: '截图生成失败',
       details: error.message,
-      url: url
+      url: url,
+      stack: isDev ? error.stack : undefined
     });
   } finally {
     if (browser) {
-      await browser.close();
+      try {
+        await browser.close();
+        console.log('浏览器已关闭');
+      } catch (e) {
+        console.error('关闭浏览器时出错:', e.message);
+      }
     }
   }
 };
