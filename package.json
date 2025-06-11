@@ -1,13 +1,14 @@
 {
     "name": "websnap",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "engines": {
       "node": "20"
     },
     "scripts": {
       "start": "node server.js",
       "dev": "node server.js",
-      "build": "echo 'No build step required'"
+      "build": "echo 'No build step required'",
+      "test": "node test-screenshot.js"
     },
     "dependencies": {
       "express": "^4.21.2",

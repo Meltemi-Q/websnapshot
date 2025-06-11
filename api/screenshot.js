@@ -135,18 +135,51 @@ module.exports = async (req, res) => {
     if (isVercel) {
       // Vercel 环境配置
       const chromium = require('@sparticuz/chromium');
-      
+
+      // 为 Vercel 环境优化的启动参数
+      const vercelArgs = [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-web-security',
+        '--disable-features=TranslateUI,VizDisplayCompositor',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-ipc-flooding-protection',
+        '--disable-hang-monitor',
+        '--disable-client-side-phishing-detection',
+        '--disable-component-update',
+        '--disable-default-apps',
+        '--disable-domain-reliability',
+        '--disable-sync',
+        '--hide-scrollbars',
+        '--mute-audio',
+        '--no-default-browser-check',
+        '--no-pings',
+        '--window-size=1920,1080'
+      ];
+
       launchOptions = {
-        args: chromium.args,
+        args: vercelArgs,
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
         headless: chromium.headless,
+        timeout: 30000,
       };
-      console.log('使用 Vercel @sparticuz/chromium');
+      console.log('使用 Vercel @sparticuz/chromium 优化配置');
     } else {
       // 本地开发环境
       const chromePath = await getChromePath();
-      
+
       launchOptions = {
         headless: true,
         args: [
@@ -162,23 +195,42 @@ module.exports = async (req, res) => {
           '--disable-backgrounding-occluded-windows',
           '--disable-renderer-backgrounding',
           '--disable-web-security',
-          '--disable-features=TranslateUI',
+          '--disable-features=TranslateUI,VizDisplayCompositor',
+          '--disable-extensions',
+          '--disable-plugins',
           '--window-size=1920,1080'
         ],
-        executablePath: chromePath
+        executablePath: chromePath,
+        timeout: 30000,
       };
-      
+
       console.log(`使用本地 Chrome: ${chromePath}`);
-      
+
       // 检查 Chrome 是否存在
       if (!fs.existsSync(chromePath)) {
-        throw new Error(`Chrome 可执行文件不存在: ${chromePath}`);
+        const errorMsg = `Chrome 可执行文件不存在: ${chromePath}\n\n请确保已安装 Chrome 浏览器，或设置正确的 Chrome 路径。\n\n常见安装路径：\n- Windows: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\n- macOS: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome\n- Linux: /usr/bin/google-chrome`;
+        throw new Error(errorMsg);
       }
     }
     
     // 启动浏览器
     console.log('正在启动浏览器...');
-    browser = await puppeteer.launch(launchOptions);
+    console.log('启动参数:', JSON.stringify(launchOptions, null, 2));
+
+    try {
+      browser = await puppeteer.launch(launchOptions);
+      console.log('浏览器启动成功');
+    } catch (launchError) {
+      console.error('浏览器启动失败:', launchError.message);
+
+      // 如果是 Vercel 环境，提供更详细的错误信息
+      if (isVercel) {
+        throw new Error(`Vercel 环境浏览器启动失败: ${launchError.message}\n\n这可能是由于以下原因：\n1. @sparticuz/chromium 包版本不兼容\n2. Vercel 函数内存限制\n3. 系统依赖库缺失\n\n建议检查 Vercel 函数日志获取更多信息。`);
+      } else {
+        throw new Error(`本地环境浏览器启动失败: ${launchError.message}\n\n请确保：\n1. Chrome 浏览器已正确安装\n2. Chrome 可执行文件路径正确\n3. 系统权限允许启动 Chrome`);
+      }
+    }
+
     const page = await browser.newPage();
     
     // 设置用户代理 - 模拟真实浏览器
@@ -211,10 +263,27 @@ module.exports = async (req, res) => {
     
     // 导航到目标URL
     console.log(`正在访问: ${url}`);
-    await page.goto(url, {
-      waitUntil: ['networkidle0', 'domcontentloaded'],
-      timeout: 30000
-    });
+    try {
+      await page.goto(url, {
+        waitUntil: ['networkidle0', 'domcontentloaded'],
+        timeout: 30000
+      });
+      console.log('页面加载完成');
+    } catch (gotoError) {
+      console.error('页面加载失败:', gotoError.message);
+
+      // 尝试使用更宽松的等待条件
+      try {
+        console.log('尝试使用宽松模式重新加载页面...');
+        await page.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 20000
+        });
+        console.log('宽松模式页面加载完成');
+      } catch (retryError) {
+        throw new Error(`无法加载页面 ${url}: ${retryError.message}\n\n可能的原因：\n1. 网站响应缓慢或不可访问\n2. 网络连接问题\n3. 网站阻止了自动化访问\n\n请检查网址是否正确且可访问。`);
+      }
+    }
     
     // 等待现代框架加载完成
     try {
@@ -283,17 +352,40 @@ module.exports = async (req, res) => {
     
     // 截取整个页面
     console.log('正在生成截图...');
-    const screenshot = await page.screenshot({
-      type: 'jpeg',
-      quality: qualitySettings[quality],
-      fullPage: true
-    });
-    
+    let screenshot;
+    try {
+      screenshot = await page.screenshot({
+        type: 'jpeg',
+        quality: qualitySettings[quality],
+        fullPage: true
+      });
+      console.log(`截图生成成功，大小: ${Math.round(screenshot.length / 1024)}KB`);
+    } catch (screenshotError) {
+      console.error('截图生成失败:', screenshotError.message);
+
+      // 尝试使用固定尺寸截图作为备选方案
+      try {
+        console.log('尝试使用固定尺寸截图...');
+        screenshot = await page.screenshot({
+          type: 'jpeg',
+          quality: qualitySettings[quality],
+          fullPage: false,
+          clip: {
+            x: 0,
+            y: 0,
+            width: deviceProfiles[device].width,
+            height: deviceProfiles[device].height
+          }
+        });
+        console.log(`备选截图生成成功，大小: ${Math.round(screenshot.length / 1024)}KB`);
+      } catch (fallbackError) {
+        throw new Error(`截图生成失败: ${fallbackError.message}\n\n可能的原因：\n1. 页面内容过大或复杂\n2. 内存不足\n3. 页面渲染异常\n\n建议尝试降低图片质量或使用不同的设备类型。`);
+      }
+    }
+
     // 将截图转换为Base64
     const base64Image = screenshot.toString('base64');
     const dataURI = `data:image/jpeg;base64,${base64Image}`;
-    
-    console.log(`截图生成成功，大小: ${Math.round(screenshot.length / 1024)}KB`);
     
     // 返回结果
     res.json({

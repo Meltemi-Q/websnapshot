@@ -142,6 +142,68 @@ const qualitySettings = {
 - 建议在 Vercel 部署时使用较低的图片质量以提升速度
 - 本地开发需要系统安装 Chrome 浏览器
 
+## 🔧 故障排除
+
+### 常见问题解决方案
+
+#### 1. Puppeteer 依赖错误
+如果遇到 `libnss3.so` 或其他系统库缺失错误：
+
+**Vercel 环境：**
+- 确保使用最新版本的 `@sparticuz/chromium`
+- 检查 Vercel 函数内存设置（建议 1024MB）
+- 查看 Vercel 函数日志获取详细错误信息
+
+**本地环境：**
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxss1 libasound2
+
+# CentOS/RHEL
+sudo yum install -y nss atk at-spi2-atk libdrm libxkbcommon libXcomposite libXdamage libXrandr libgbm libXss alsa-lib
+```
+
+#### 2. Chrome 浏览器未找到
+运行测试脚本检查 Chrome 安装：
+```bash
+npm run test
+```
+
+如果 Chrome 未安装：
+- **Windows**: 从 [Chrome 官网](https://www.google.com/chrome/) 下载安装
+- **macOS**: `brew install --cask google-chrome`
+- **Linux**: `sudo apt-get install google-chrome-stable`
+
+#### 3. 内存不足错误
+- 降低图片质量设置
+- 使用较小的设备尺寸
+- 在 Vercel 中增加函数内存限制
+
+#### 4. 网页加载超时
+- 检查目标网站是否可访问
+- 某些网站可能阻止自动化访问
+- 尝试使用不同的网址进行测试
+
+### 测试和诊断
+
+运行内置测试脚本：
+```bash
+npm run test
+```
+
+检查健康状态：
+```bash
+curl http://localhost:3000/api/health
+```
+
+### 日志调试
+
+启用详细日志：
+```bash
+DEBUG=puppeteer:* npm start
+```
+
 ## 🤝 贡献指南
 
 欢迎提交 Issue 和 Pull Request！

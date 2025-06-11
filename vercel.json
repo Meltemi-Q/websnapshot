@@ -1,7 +1,8 @@
 {
     "functions": {
       "api/screenshot.js": {
-        "maxDuration": 60
+        "maxDuration": 60,
+        "memory": 1024
       }
     },
     "routes": [
@@ -14,8 +15,15 @@
         "dest": "/api/screenshot.js"
       },
       {
+        "src": "/api/health",
+        "dest": "/server.js"
+      },
+      {
         "src": "/(.*)",
         "dest": "/public/$1"
       }
-    ]
+    ],
+    "env": {
+      "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
+    }
 }
