@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSnap - 网址转长图工具</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-weight: 600;
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .input-section {
+            padding: 35px 40px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .input-group {
+            display: flex;
+            margin-bottom: 25px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 16px 20px;
+            font-size: 17px;
+            border: 1px solid #ddd;
+            border-radius: 12px 0 0 12px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: #a777e3;
+            box-shadow: 0 0 0 3px rgba(167, 119, 227, 0.15);
+        }
+
+        .input-group button {
+            background: #6e8efb;
+            color: white;
+            border: none;
+            padding: 0 35px;
+            font-size: 17px;
+            font-weight: 500;
+            border-radius: 0 12px 12px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .input-group button:hover {
+            background: #5d7df0;
+        }
+
+        .input-group button:disabled {
+            background: #b0c0f0;
+            cursor: not-allowed;
+        }
+
+        .options {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .option {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .option label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .option select {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .result-section {
+            padding: 30px 40px;
+            display: none;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .result-header h2 {
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: #f1f3f5;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: #e9ecef;
+        }
+
+        .action-btn.download {
+            background: #6e8efb;
+            color: white;
+        }
+
+        .action-btn.download:hover {
+            background: #5d7df0;
+        }
+
+        #screenshot-container {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid #eee;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+            margin-top: 20px;
+            background: #fafafa;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #screenshot-container img {
+            max-width: 100%;
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(167, 119, 227, 0.2);
+            border-top: 5px solid #a777e3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        .loading p {
+            font-size: 18px;
+            color: #666;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .placeholder {
+            text-align: center;
+            padding: 60px 0;
+            color: #999;
+        }
+
+        .placeholder i {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #e0e0e0;
+        }
+
+        .placeholder h3 {
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: #777;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: #888;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            header, .input-section, .result-section {
+                padding: 25px;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .input-group input {
+                border-radius: 12px;
+                margin-bottom: 10px;
+            }
+            
+            .input-group button {
+                border-radius: 12px;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-camera"></i> WebSnap</h1>
+            <p>将任何网页转换为高质量长截图</p>
+        </header>
+
+        <section class="input-section">
+            <div class="input-group">
+                <input type="text" id="url-input" placeholder="输入网址 (例如: example.com 或 https://example.com)" required>
+                <button id="generate-btn">生成截图</button>
+            </div>
+            
+            <div class="options">
+                <div class="option">
+                    <label for="device-select">设备类型</label>
+                    <select id="device-select">
+                        <option value="desktop">桌面 (1440×900)</option>
+                        <option value="tablet">平板 (768×1024)</option>
+                        <option value="mobile">手机 (375×667)</option>
+                    </select>
+                </div>
+                
+                <div class="option">
+                    <label for="quality-select">图片质量</label>
+                    <select id="quality-select">
+                        <option value="high">高质量</option>
+                        <option value="medium" selected>中等质量</option>
+                        <option value="low">低质量</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+        
+        <section class="loading" id="loading-section">
+            <div class="spinner"></div>
+            <p>正在生成截图，请稍候...</p>
+        </section>
+        
+        <section class="result-section" id="result-section">
+            <div class="result-header">
+                <h2>生成结果</h2>
+                <div class="result-actions">
+                    <button class="action-btn" id="new-btn"><i class="fas fa-plus"></i> 新截图</button>
+                    <button class="action-btn download" id="download-btn"><i class="fas fa-download"></i> 下载图片</button>
+                </div>
+            </div>
+            <div id="screenshot-container">
+                <div class="placeholder">
+                    <i class="fas fa-image"></i>
+                    <h3>截图将在这里显示</h3>
+                    <p>生成完成后，您将看到网页截图预览</p>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <footer>
+        <p>© 2025 WebSnap - 网页转长图工具 | 使用简单，效果出色</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlInput = document.getElementById('url-input');
+            const generateBtn = document.getElementById('generate-btn');
+            const deviceSelect = document.getElementById('device-select');
+            const qualitySelect = document.getElementById('quality-select');
+            const loadingSection = document.getElementById('loading-section');
+            const resultSection = document.getElementById('result-section');
+            const screenshotContainer = document.getElementById('screenshot-container');
+            const downloadBtn = document.getElementById('download-btn');
+            const newBtn = document.getElementById('new-btn');
+            
+            let generatedImage = null;
+            
+            generateBtn.addEventListener('click', async function() {
+                const url = urlInput.value.trim();
+                
+                if (!url) {
+                    alert('请输入网址');
+                    return;
+                }
+                
+                // 显示加载状态
+                loadingSection.style.display = 'block';
+                resultSection.style.display = 'none';
+                generateBtn.disabled = true;
+                
+                try {
+                    // 获取设备设置
+                    const device = deviceSelect.value;
+                    
+                    // 获取质量设置
+                    const quality = qualitySelect.value;
+                    
+                    // 调用后端API
+                    const response = await fetch('/api/screenshot', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: url,
+                            device: device,
+                            quality: quality
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`截图生成失败: ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // 显示结果
+                    loadingSection.style.display = 'none';
+                    resultSection.style.display = 'block';
+                    
+                    // 显示截图
+                    screenshotContainer.innerHTML = `<img src="${result.image}" alt="网页截图" id="screenshot-image">`;
+                    generatedImage = result.image;
+                } catch (error) {
+                    console.error('Error:', error);
+                    loadingSection.style.display = 'none';
+                    alert(`生成截图时出错: ${error.message}`);
+                } finally {
+                    generateBtn.disabled = false;
+                }
+            });
+            
+            downloadBtn.addEventListener('click', function() {
+                if (!generatedImage) {
+                    alert('请先生成截图');
+                    return;
+                }
+                
+                const link = document.createElement('a');
+                link.href = generatedImage;
+                link.download = 'websnap-screenshot.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+            
+            newBtn.addEventListener('click', function() {
+                urlInput.value = '';
+                urlInput.focus();
+                resultSection.style.display = 'none';
+                screenshotContainer.innerHTML = `
+                    <div class="placeholder">
+                        <i class="fas fa-image"></i>
+                        <h3>截图将在这里显示</h3>
+                        <p>生成完成后，您将看到网页截图预览</p>
+                    </div>
+                `;
+                generatedImage = null;
+            });
+        });
+    </script>
+</body>
+</html>

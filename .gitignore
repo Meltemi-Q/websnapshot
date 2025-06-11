@@ -1,0 +1,170 @@
+# ==================================
+# Node.js Dependencies & Packages
+# ==================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Package manager lock files (根据项目需要选择保留)
+# yarn.lock
+# pnpm-lock.yaml
+# 注意：保留 package-lock.json 以确保依赖版本一致性
+
+# NPM cache
+.npm
+.npm-cache/
+.npmrc
+
+# ==================================
+# Runtime & Process Files
+# ==================================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ==================================
+# 测试和覆盖率
+# ==================================
+coverage/
+.nyc_output
+*.lcov
+
+# ==================================
+# 构建产物和缓存
+# ==================================
+dist/
+build/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist/
+build/Release
+
+# ==================================
+# 环境变量和配置
+# ==================================
+.env
+.env.*
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ==================================
+# 开发工具和IDE
+# ==================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ==================================
+# 操作系统生成的文件
+# ==================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ==================================
+# 日志文件
+# ==================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==================================
+# Vercel 部署
+# ==================================
+.vercel
+.vercel/*
+
+# ==================================
+# 其他包管理器
+# ==================================
+.yarn-integrity
+jspm_packages/
+.grunt
+.lock-wscript
+
+# ==================================
+# 临时文件和备份
+# ==================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*~
+
+# ==================================
+# 截图项目特定忽略
+# ==================================
+# 临时生成的截图文件
+screenshots/
+temp-images/
+*.png
+*.jpg
+*.jpeg
+!public/**/*.png
+!public/**/*.jpg
+!public/**/*.jpeg
+
+# Chrome 用户数据和缓存
+.chrome-user-data/
+chrome-data/
+
+# 测试文件
+test-*.js
+test-*.ts
+*.test.js
+*.test.ts
+
+# Cursor AI 相关文件
+.cursorindexingignore
+.cursor/
+
+# SpecStory 相关文件
+.specstory/
+
+# ==================================
+# 可选：其他常见忽略项
+# ==================================
+# 压缩包
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# 编译文件
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so 
