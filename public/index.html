@@ -338,7 +338,9 @@
             
             let generatedImage = null;
             
-            generateBtn.addEventListener('click', async function() {
+            generateBtn.addEventListener('click', async function(event) {
+                event.stopPropagation();
+                
                 const url = urlInput.value.trim();
                 
                 if (!url) {
@@ -373,16 +375,15 @@
                     
                     const result = await response.json();
                     
-                    if (!response.ok || !result.success) {
-                        // 处理API错误响应
-                        let errorMessage = '截图生成失败';
-                        if (result.error) {
-                            errorMessage = result.error;
-                        }
-                        if (result.details) {
-                            errorMessage += ': ' + result.details;
-                        }
+                    if (!response.ok) {
+                        // 优先使用后端返回的错误信息
+                        const errorMessage = result.error || '截图生成失败，未提供具体原因。';
                         throw new Error(errorMessage);
+                    }
+                    
+                    // 后端可能成功响应，但业务逻辑失败
+                    if (!result.success) {
+                        throw new Error(result.error || '截图生成失败，但响应状态正常。');
                     }
                     
                     // 显示结果

@@ -139,65 +139,16 @@ module.exports = async (req, res) => {
       // Vercel 环境配置
       const chromium = require('@sparticuz/chromium');
 
-      // 强制设置 Chromium 配置以避免依赖问题
-      await chromium.font('https://raw.githack.com/googlei18n/noto-emoji/master/fonts/NotoColorEmoji.ttf');
-
-      // 为 Vercel 环境优化的启动参数 - 专门解决 libnss3.so 问题
-      const vercelArgs = [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-web-security',
-        '--disable-features=TranslateUI,VizDisplayCompositor,AudioServiceOutOfProcess,AudioServiceSandbox',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-ipc-flooding-protection',
-        '--disable-hang-monitor',
-        '--disable-client-side-phishing-detection',
-        '--disable-component-update',
-        '--disable-default-apps',
-        '--disable-domain-reliability',
-        '--disable-sync',
-        '--hide-scrollbars',
-        '--mute-audio',
-        '--no-default-browser-check',
-        '--no-pings',
-        '--disable-software-rasterizer',
-        '--disable-background-networking',
-        '--disable-default-apps',
-        '--disable-extensions',
-        '--disable-sync',
-        '--disable-translate',
-        '--hide-scrollbars',
-        '--metrics-recording-only',
-        '--mute-audio',
-        '--no-first-run',
-        '--safebrowsing-disable-auto-update',
-        '--ignore-ssl-errors',
-        '--ignore-certificate-errors',
-        '--ignore-certificate-errors-spki-list',
-        '--ignore-ssl-errors-spki-list',
-        '--window-size=1920,1080'
-      ];
-
+      // Vercel 环境的推荐配置
+      // See: https://github.com/Sparticuz/chromium/blob/master/README.md#running-on-aws-lambda-or-google-cloud-functions
       launchOptions = {
-        args: vercelArgs,
+        args: chromium.args,
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
         headless: chromium.headless,
-        timeout: 60000,
-        ignoreDefaultArgs: ['--disable-extensions'],
+        ignoreHTTPSErrors: true, // 忽略 HTTPS 错误
       };
-      console.log('使用 Vercel @sparticuz/chromium 131.0.0 稳定配置');
+      console.log('使用 Vercel @sparticuz/chromium 推荐配置');
     } else {
       // 本地开发环境
       const chromePath = await getChromePath();
@@ -237,48 +188,21 @@ module.exports = async (req, res) => {
     
     // 启动浏览器
     console.log('正在启动浏览器...');
-    console.log('启动参数:', JSON.stringify(launchOptions, null, 2));
+    // console.log('启动参数:', JSON.stringify(launchOptions, null, 2)); // 调试时可以取消注释
 
     try {
       browser = await puppeteer.launch(launchOptions);
       console.log('浏览器启动成功');
     } catch (launchError) {
       console.error('浏览器启动失败:', launchError.message);
-      console.error('完整错误:', launchError);
-
-      // 如果是 Vercel 环境，尝试使用备用配置
-      if (isVercel) {
-        console.log('尝试使用备用 Vercel 配置...');
-        try {
-          const chromium = require('@sparticuz/chromium');
-
-          // 备用配置 - 最小化参数
-          const fallbackOptions = {
-            args: [
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--single-process',
-              '--disable-gpu',
-              '--disable-web-security',
-              '--disable-features=VizDisplayCompositor'
-            ],
-            executablePath: await chromium.executablePath(),
-            headless: true,
-            timeout: 30000,
-          };
-
-          console.log('使用备用配置启动浏览器...');
-          browser = await puppeteer.launch(fallbackOptions);
-          console.log('备用配置启动成功');
-        } catch (fallbackError) {
-          console.error('备用配置也失败:', fallbackError.message);
-          throw new Error(`Vercel 环境浏览器启动失败: ${launchError.message}\n\n备用方案也失败: ${fallbackError.message}\n\n这通常是由于：\n1. @sparticuz/chromium 版本与 Node.js 20.x 不兼容\n2. 系统依赖库缺失 (libnss3.so)\n3. Vercel 函数内存不足\n\n建议：\n- 检查依赖版本兼容性\n- 增加函数内存到 1024MB\n- 查看 Vercel 函数日志获取详细信息`);
-        }
-      } else {
-        throw new Error(`本地环境浏览器启动失败: ${launchError.message}\n\n请确保：\n1. Chrome 浏览器已正确安装\n2. Chrome 可执行文件路径正确\n3. 系统权限允许启动 Chrome`);
-      }
+      // 移除复杂的备用逻辑，直接抛出错误便于调试
+      return res.status(500).json({ 
+        error: `Vercel 环境浏览器启动失败: ${launchError.message}`,
+        troubleshooting: 'https://pptr.dev/troubleshooting'
+      });
     }
+    
+    console.log('浏览器启动完毕，准备打开新页面');
 
     const page = await browser.newPage();
     

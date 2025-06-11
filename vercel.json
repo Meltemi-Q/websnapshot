@@ -1,37 +1,15 @@
 {
-    "functions": {
-      "api/screenshot.js": {
-        "maxDuration": 60,
-        "memory": 1024,
-        "runtime": "nodejs20.x"
-      }
-    },
-    "routes": [
-      {
-        "src": "/",
-        "dest": "/public/index.html"
-      },
-      {
-        "src": "/api/screenshot",
-        "dest": "/api/screenshot.js"
-      },
-      {
-        "src": "/api/health",
-        "dest": "/server.js"
-      },
-      {
-        "src": "/(.*)",
-        "dest": "/public/$1"
-      }
-    ],
-    "env": {
-      "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
-      "PUPPETEER_EXECUTABLE_PATH": "/tmp/chromium",
-      "NODE_ENV": "production"
-    },
-    "build": {
-      "env": {
-        "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
-      }
+  "functions": {
+    "api/screenshot.js": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "runtime": "nodejs20.x"
     }
-}
+  },
+  "routes": [
+    {
+      "src": "/api/screenshot",
+      "dest": "/api/screenshot.js"
+    }
+  ]
+} 
